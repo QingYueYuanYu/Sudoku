@@ -103,6 +103,18 @@ vector<int> Board::get_possibilities(Cell cell){
     return possibilities;
 }
 
+void Board::set_difficulty(int diff){
+    difficulty = diff;
+}
+
+void Board::set_hole_num(int hole_n){
+    hole_num = hole_n;
+}
+
+void Board::set_unique(bool is_uni){
+    is_unique = is_uni;
+}
+
 void Board::swap_row(int row1, int row2){
     for(int col=0; col<9; col++){
         int tmp = rows[row1][col].value;
@@ -145,15 +157,19 @@ void Board::swap_band(int band1, int band2){
 
 void Board::shuffle(int iterations){
     for(int iter=0; iter<iterations; iter++){
-        srand((unsigned)time(NULL)); 
+        srand((unsigned)time(NULL)*iter); 
+        // cout<<"time: "<<(unsigned)time(NULL)<<endl;
+        int tmp=0;
         int kind = rand()%4;
         int block = rand()%2 * 3;
         int piece1 = rand()%3;
         int piece2 = rand()%3;
         while(piece2==piece1){
+            srand((unsigned)time(NULL)*iter+tmp); 
             piece2 = rand()%3;
+            tmp ++;
         }
-        cout<<"kind: "<<kind<<" "<<"block:"<<block<<" "<<"piece1: "<<piece1<<" "<<"piece2: "<<piece2<<endl;
+        // cout<<"kind: "<<kind<<" "<<"block:"<<block<<" "<<"piece1: "<<piece1<<" "<<"piece2: "<<piece2<<endl;
         if(kind == 0){
             swap_row(block+piece1, block+piece2);
         }else if(kind == 1){
@@ -163,16 +179,19 @@ void Board::shuffle(int iterations){
         }else{
             swap_band(piece1, piece2);
         }
+        // cout<<"Finish iter: "<<iter<<" of "<<iterations<<endl;
     }
 }
 
 void Board::reduce_via_logical(){
     int counter = 0;
+    int tmp = 0;
     vector<Cell> used_cells = get_used_cells();
     vector<int> shuffle_used_cells_idx;
     vector<Cell> shuffle_used_cells;
     while(shuffle_used_cells_idx.size()<used_cells.size()){
-        srand((unsigned)time(NULL)); 
+        tmp ++;
+        srand((unsigned)time(NULL)+tmp); 
         int idx = rand()%used_cells.size();
         if(find(shuffle_used_cells_idx.begin(), shuffle_used_cells_idx.end(), idx) == shuffle_used_cells_idx.end()){
             shuffle_used_cells_idx.push_back(idx);
@@ -199,7 +218,7 @@ void Board::reduce_via_logical(){
                 // cout<<"Modify: ("<<cell.row<<","<<cell.col<<")"<<endl;
             }
         }else{
-            if(possibilities.size() >= 1){
+            if(possibilities.size()>=1 && possibilities.size()<=10-2*difficulty){
                 Cell cell = shuffle_used_cells[idx];
                 rows[cell.row][cell.col].value = 0;
                 cols[cell.col][cell.row].value = 0;
@@ -214,12 +233,34 @@ void Board::reduce_via_logical(){
 
 void Board::generate(){
     // cout<<"----------Begin Generate----------"<<endl;
-    shuffle(20);
+    shuffle(10);
     // cout<<"-----After shuffle-----"<<endl;
     // output();
     reduce_via_logical();
     // cout<<"-----After reduce-----"<<endl;
 
+}
+
+void Board::out_to_file(string path){
+    fstream f;
+    f.open(path, ios::in);
+    if(!f){
+        f.open(path, ios::out);
+    }
+    f.seekp(0, ios::end);
+    for(int row=0; row<9; row++){
+        for(int col=0; col<9; col++){
+            if(cells[row*9+col].value==0){
+                f<<"$"<<" ";
+            }else{
+                f<<cells[row*9+col].value<<" ";
+            }
+        }
+        f<<"\n";
+    }
+    f.close();
+    output();
+    cout<<"----------"<<endl;
 }
 
 void Board::output(){
