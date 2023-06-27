@@ -1,0 +1,29 @@
+#include <vector>
+#include "Cell.h"
+using namespace std;
+
+class Board{
+private:
+    Cell rows[9][9];
+    Cell cols[9][9];
+    Cell boxs[9][9];
+    Cell cells[81];
+    int difficulty;
+    int hole_num;
+    bool is_unique;
+public:
+    Board();
+    Board(vector<int> values, int diff);
+    void update_cell(Cell cell);
+    vector<Cell> get_used_cells();
+    vector<Cell> get_unused_cells();
+    vector<int> get_possibilities(Cell cell);
+    void swap_row(int row1, int row2);
+    void swap_col(int col1, int col2);
+    void swap_stack(int stack1, int stack2);
+    void swap_band(int band1, int band2);
+    void shuffle(int iterations);
+    void reduce_via_logical();
+    void generate();
+    void output();
+};
