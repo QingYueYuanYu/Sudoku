@@ -29,6 +29,9 @@ public:
     void shuffle(int iterations);
     void reduce_via_logical();
     void generate();
+    bool solve();
+    void reset_values(vector<int> values);
+    void in_from_file(string path);
     void out_to_file(string path);
     void output();
 };

@@ -3,6 +3,8 @@
 #include <iostream>
 #include <random>
 #include <algorithm>
+#include <string>
+#include <cstring>
 #include <time.h>
 #include "Board.h"
 using namespace std;
@@ -157,7 +159,7 @@ void Board::swap_band(int band1, int band2){
 
 void Board::shuffle(int iterations){
     for(int iter=0; iter<iterations; iter++){
-        srand((unsigned)time(NULL)*iter); 
+        // srand((unsigned)time(NULL)*iter); 
         // cout<<"time: "<<(unsigned)time(NULL)<<endl;
         int tmp=0;
         int kind = rand()%4;
@@ -165,7 +167,7 @@ void Board::shuffle(int iterations){
         int piece1 = rand()%3;
         int piece2 = rand()%3;
         while(piece2==piece1){
-            srand((unsigned)time(NULL)*iter+tmp); 
+            // srand((unsigned)time(NULL)*iter+tmp); 
             piece2 = rand()%3;
             tmp ++;
         }
@@ -191,7 +193,7 @@ void Board::reduce_via_logical(){
     vector<Cell> shuffle_used_cells;
     while(shuffle_used_cells_idx.size()<used_cells.size()){
         tmp ++;
-        srand((unsigned)time(NULL)+tmp); 
+        // srand((unsigned)time(NULL)+tmp); 
         int idx = rand()%used_cells.size();
         if(find(shuffle_used_cells_idx.begin(), shuffle_used_cells_idx.end(), idx) == shuffle_used_cells_idx.end()){
             shuffle_used_cells_idx.push_back(idx);
@@ -238,13 +240,103 @@ void Board::generate(){
     // output();
     reduce_via_logical();
     // cout<<"-----After reduce-----"<<endl;
+}
 
+bool Board::solve(){
+    int index = 0;
+    vector<Cell> vacants = get_unused_cells();
+    // cout<<"-----Unused Cells-----"<<endl;
+    // for(int index=0; index<int(vacants.size()); index++){
+    //     cout<<"("<<vacants[index].row<<","<<vacants[index].col<<")"<<endl;
+    // }
+    // cout<<"-----Begin Solve-----"<<endl;
+    while(index>=0 && index<int(vacants.size())){
+        // cout<<"("<<vacants[index].row<<","<<vacants[index].col<<")"<<endl;
+        // cout<<"Handle Cell: "<<"("<<vacants[index].row<<","<<vacants[index].col<<")"<<" : "<<vacants[index].value;
+        Cell cell = vacants[index];
+        vector<int> possibilities = get_possibilities(cell);
+        // cout<<"Possibilities:  ";
+        // for(int index2; index2<int(possibilities.size()); index2++){
+        //     cout<<possibilities[index2]<<" ";
+        // }
+        // cout<<endl;
+        bool is_find = false;
+        for(int possible_value=cell.value+1; possible_value<10; possible_value++){
+            if(find(possibilities.begin(), possibilities.end(), possible_value) != possibilities.end()){
+                // cout<<" possible_value: "<<possible_value<<endl;
+                rows[cell.row][cell.col].value = possible_value;
+                cols[cell.col][cell.row].value = possible_value;
+                boxs[cell.box][3*(cell.row%3)+cell.col%3].value = possible_value;
+                cells[cell.row*9+cell.col].value = possible_value;
+                vacants[index].value = possible_value;
+                is_find = true;
+                break;
+            }
+        }
+        if(!is_find){
+            rows[cell.row][cell.col].value = 0;
+            cols[cell.col][cell.row].value = 0;
+            boxs[cell.box][3*(cell.row%3)+cell.col%3].value = 0;
+            cells[cell.row*9+cell.col].value = 0;
+            vacants[index].value = 0;
+            index --;
+        }else{
+            index ++;
+        }
+    }
+    if(index == int(vacants.size())){
+        return true;
+    }else{
+        return false;
+    }
+}
+
+void Board::reset_values(vector<int> values){
+    for(int row=0; row<9; row++){
+        for(int col=0; col<9; col++){
+            int box = 3*(row/3) + col/3;
+            Cell cell = Cell(row, col, box, values[row*9+col]);
+            rows[row][col] = cell;
+            cols[col][row] = cell;
+            boxs[box][3*(row%3)+col%3] = cell;
+            cells[row*9+col] = cell;
+        }
+    }
+}
+
+void Board::in_from_file(string path){
+    vector<int> values;
+    ifstream f(path);
+    string line;
+    while(getline(f, line)){
+        stringstream f_line(line);
+        string value;
+        while(f_line>>value){
+            if(value == "$"){
+                values.push_back(0);
+            }else{
+                values.push_back(stoi(value));
+            }
+        }
+    }
+
+    for(int row=0; row<9; row++){
+        for(int col=0; col<9; col++){
+            int box = 3*(row/3) + col/3;
+            Cell cell = Cell(row, col, box, values[row*9+col]);
+            rows[row][col] = cell;
+            cols[col][row] = cell;
+            boxs[box][3*(row%3)+col%3] = cell;
+            cells[row*9+col] = cell;
+        }
+    }
 }
 
 void Board::out_to_file(string path){
     fstream f;
-    f.open(path, ios::in);
+    f.open(path, ios::out|ios::app);
     if(!f){
+        cout<<"-----Create File In Board-----"<<endl;
         f.open(path, ios::out);
     }
     f.seekp(0, ios::end);
@@ -259,8 +351,8 @@ void Board::out_to_file(string path){
         f<<"\n";
     }
     f.close();
-    output();
-    cout<<"----------"<<endl;
+    // output();
+    // cout<<"----------"<<endl;
 }
 
 void Board::output(){
